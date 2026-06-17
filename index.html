@@ -1,0 +1,743 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Flux – AI-powered code editor. Free local AI with Qwen via Ollama, plus Claude, GPT-4o, and Gemini.">
+  <meta property="og:title" content="Flux – AI Code Editor">
+  <meta property="og:description" content="Cursor-style AI coding, 100% free. Local models via Ollama. Open source.">
+  <meta property="og:image" content="fluxlogo.png">
+  <meta property="og:type" content="website">
+  <title>Flux – AI Code Editor</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #080808;
+      --bg2: #0d0d0d;
+      --bg3: #111111;
+      --border: rgba(255,255,255,0.07);
+      --accent: #00D4FF;
+      --accent2: #0099bb;
+      --text: #e8e8e8;
+      --text-muted: #666;
+      --text-dim: #999;
+      --radius: 12px;
+      --radius-sm: 8px;
+      --font: 'Inter', 'Segoe UI', system-ui, sans-serif;
+      --font-mono: 'Cascadia Code', 'JetBrains Mono', 'Fira Code', monospace;
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--font);
+      font-size: 16px;
+      line-height: 1.6;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    a { color: inherit; text-decoration: none; }
+    img { max-width: 100%; display: block; }
+
+    .container {
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 0 24px;
+    }
+
+    /* ── NAV ── */
+    .nav {
+      position: fixed;
+      top: 0; left: 0; right: 0;
+      z-index: 100;
+      padding: 16px 0;
+      transition: background 0.3s, border-color 0.3s;
+      border-bottom: 1px solid transparent;
+    }
+    .nav.scrolled {
+      background: rgba(8,8,8,0.92);
+      backdrop-filter: blur(12px);
+      border-color: var(--border);
+    }
+    .nav-inner {
+      display: flex;
+      align-items: center;
+      gap: 32px;
+    }
+    .nav-logo {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 1.1rem;
+      font-weight: 700;
+      letter-spacing: -0.3px;
+      flex-shrink: 0;
+    }
+    .nav-logo img {
+      width: 28px;
+      height: 28px;
+      border-radius: 6px;
+    }
+    .nav-links {
+      display: flex;
+      align-items: center;
+      gap: 28px;
+      margin-left: auto;
+    }
+    .nav-links a {
+      color: var(--text-dim);
+      font-size: 0.9rem;
+      transition: color 0.2s;
+    }
+    .nav-links a:hover { color: var(--text); }
+    .nav-actions {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      flex-shrink: 0;
+    }
+
+    /* Language switcher */
+    .lang-btn {
+      background: var(--bg3);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 5px 12px;
+      font-size: 0.82rem;
+      color: var(--text-dim);
+      cursor: pointer;
+      transition: border-color 0.2s, color 0.2s;
+      font-family: var(--font);
+    }
+    .lang-btn:hover { border-color: var(--accent); color: var(--accent); }
+
+    /* ── BUTTONS ── */
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 22px;
+      border-radius: var(--radius-sm);
+      font-size: 0.9rem;
+      font-weight: 600;
+      transition: all 0.2s;
+      cursor: pointer;
+      border: none;
+      font-family: var(--font);
+      text-decoration: none;
+    }
+    .btn-primary {
+      background: var(--accent);
+      color: #000;
+    }
+    .btn-primary:hover {
+      background: #33deff;
+      transform: translateY(-1px);
+      box-shadow: 0 4px 20px rgba(0,212,255,0.3);
+    }
+    .btn-outline {
+      background: transparent;
+      color: var(--text);
+      border: 1px solid var(--border);
+    }
+    .btn-outline:hover {
+      border-color: rgba(255,255,255,0.25);
+      background: rgba(255,255,255,0.04);
+    }
+    .btn-lg { padding: 13px 28px; font-size: 1rem; }
+
+    /* ── HERO ── */
+    .hero {
+      padding: 140px 0 100px;
+      text-align: center;
+      position: relative;
+      overflow: hidden;
+    }
+    .hero::before {
+      content: '';
+      position: absolute;
+      top: -200px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 600px;
+      height: 600px;
+      background: radial-gradient(circle, rgba(0,212,255,0.06) 0%, transparent 70%);
+      pointer-events: none;
+    }
+
+    .hero-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: rgba(0,212,255,0.06);
+      border: 1px solid rgba(0,212,255,0.2);
+      border-radius: 100px;
+      padding: 6px 16px;
+      font-size: 0.82rem;
+      color: var(--accent);
+      margin-bottom: 32px;
+    }
+    .hero-badge-dot {
+      width: 6px;
+      height: 6px;
+      background: var(--accent);
+      border-radius: 50%;
+      animation: pulse 2s infinite;
+    }
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.4; }
+    }
+
+    .hero-logo {
+      width: 100px;
+      height: 100px;
+      border-radius: 22px;
+      margin: 0 auto 32px;
+      box-shadow: 0 0 60px rgba(0,212,255,0.15);
+    }
+
+    .hero h1 {
+      font-size: clamp(2.8rem, 6vw, 4.5rem);
+      font-weight: 800;
+      letter-spacing: -2px;
+      line-height: 1.1;
+      margin-bottom: 24px;
+    }
+    .accent-text { color: var(--accent); }
+
+    .hero-sub {
+      font-size: 1.15rem;
+      color: var(--text-dim);
+      max-width: 580px;
+      margin: 0 auto 36px;
+      line-height: 1.7;
+    }
+
+    .hero-actions {
+      display: flex;
+      justify-content: center;
+      flex-wrap: wrap;
+      gap: 14px;
+      margin-bottom: 16px;
+    }
+
+    .hero-note {
+      font-size: 0.82rem;
+      color: var(--text-muted);
+      margin-bottom: 64px;
+    }
+
+    /* Editor mockup */
+    .mockup {
+      max-width: 760px;
+      margin: 0 auto;
+      border-radius: var(--radius);
+      border: 1px solid var(--border);
+      background: var(--bg2);
+      overflow: hidden;
+      text-align: left;
+      box-shadow: 0 32px 80px rgba(0,0,0,0.5);
+    }
+    .mockup-bar {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 12px 16px;
+      background: var(--bg3);
+      border-bottom: 1px solid var(--border);
+    }
+    .dot { width: 12px; height: 12px; border-radius: 50%; }
+    .dot-r { background: #ff5f56; }
+    .dot-y { background: #ffbd2e; }
+    .dot-g { background: #27c93f; }
+    .mockup-title {
+      margin-left: 10px;
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      font-family: var(--font-mono);
+    }
+    .mockup-body { display: flex; }
+    .mockup-code {
+      flex: 1;
+      padding: 20px 20px;
+      font-family: var(--font-mono);
+      font-size: 0.82rem;
+      line-height: 1.8;
+      overflow: hidden;
+    }
+    .ln { color: #333; margin-right: 16px; user-select: none; display: inline-block; min-width: 18px; text-align: right; }
+    .kw { color: #c678dd; }
+    .fn { color: #61afef; }
+    .tp { color: #e5c07b; }
+    .cm { color: #5c6370; font-style: italic; }
+    .nm { color: #d19a66; }
+
+    .mockup-chat {
+      width: 220px;
+      border-left: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      font-size: 0.8rem;
+    }
+    .chat-hdr {
+      padding: 12px 14px;
+      font-size: 0.75rem;
+      color: var(--accent);
+      border-bottom: 1px solid var(--border);
+      font-weight: 600;
+      letter-spacing: 0.3px;
+    }
+    .chat-msgs { padding: 12px; display: flex; flex-direction: column; gap: 8px; }
+    .bubble {
+      padding: 8px 10px;
+      border-radius: 8px;
+      line-height: 1.5;
+      font-size: 0.78rem;
+    }
+    .bubble-user { background: rgba(255,255,255,0.05); color: var(--text-dim); }
+    .bubble-ai { background: rgba(0,212,255,0.07); border: 1px solid rgba(0,212,255,0.15); color: var(--text); }
+
+    /* ── SECTIONS ── */
+    .section {
+      padding: 96px 0;
+    }
+    .section-label {
+      display: inline-block;
+      font-size: 0.75rem;
+      font-weight: 700;
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      color: var(--accent);
+      margin-bottom: 16px;
+    }
+    .section-title {
+      font-size: clamp(1.8rem, 4vw, 2.8rem);
+      font-weight: 800;
+      letter-spacing: -1px;
+      line-height: 1.15;
+      margin-bottom: 16px;
+    }
+    .section-sub {
+      color: var(--text-dim);
+      max-width: 560px;
+      margin-bottom: 56px;
+      font-size: 1.05rem;
+    }
+
+    /* ── FEATURES ── */
+    .features-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+      gap: 20px;
+    }
+    .feature-card {
+      background: var(--bg2);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 28px;
+      transition: border-color 0.2s, transform 0.2s;
+    }
+    .feature-card:hover {
+      border-color: rgba(0,212,255,0.2);
+      transform: translateY(-2px);
+    }
+    .feature-icon {
+      font-size: 1.8rem;
+      margin-bottom: 16px;
+    }
+    .feature-card h3 {
+      font-size: 1rem;
+      font-weight: 700;
+      margin-bottom: 10px;
+    }
+    .feature-card p {
+      font-size: 0.9rem;
+      color: var(--text-dim);
+      line-height: 1.65;
+    }
+
+    /* ── PROVIDERS ── */
+    .providers-section { background: var(--bg2); }
+    .providers-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+      gap: 16px;
+    }
+    .provider-card {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 28px 24px;
+      text-align: center;
+      transition: border-color 0.2s;
+    }
+    .provider-card:hover { border-color: rgba(0,212,255,0.25); }
+    .provider-icon { font-size: 2rem; margin-bottom: 14px; }
+    .provider-name { font-weight: 700; font-size: 1rem; margin-bottom: 8px; }
+    .provider-desc { font-size: 0.82rem; color: var(--text-dim); line-height: 1.6; margin-bottom: 14px; }
+    .badge {
+      display: inline-block;
+      padding: 3px 10px;
+      border-radius: 100px;
+      font-size: 0.75rem;
+      font-weight: 600;
+    }
+    .badge-free { background: rgba(0,212,255,0.1); color: var(--accent); border: 1px solid rgba(0,212,255,0.2); }
+    .badge-api  { background: rgba(255,255,255,0.05); color: var(--text-muted); border: 1px solid var(--border); }
+
+    /* ── CTA ── */
+    .cta-section {
+      padding: 96px 0;
+      text-align: center;
+      position: relative;
+      overflow: hidden;
+    }
+    .cta-section::before {
+      content: '';
+      position: absolute;
+      bottom: -200px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 600px;
+      height: 600px;
+      background: radial-gradient(circle, rgba(0,212,255,0.05) 0%, transparent 70%);
+      pointer-events: none;
+    }
+    .cta-section h2 {
+      font-size: clamp(1.8rem, 4vw, 2.8rem);
+      font-weight: 800;
+      letter-spacing: -1px;
+      margin-bottom: 12px;
+    }
+    .cta-section p {
+      color: var(--text-dim);
+      margin-bottom: 36px;
+      font-size: 1.05rem;
+    }
+
+    /* ── FOOTER ── */
+    .footer {
+      border-top: 1px solid var(--border);
+      padding: 40px 0;
+    }
+    .footer-inner {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 32px;
+      flex-wrap: wrap;
+      margin-bottom: 32px;
+    }
+    .footer-brand .nav-logo { margin-bottom: 8px; }
+    .footer-brand p {
+      font-size: 0.85rem;
+      color: var(--text-muted);
+      max-width: 260px;
+    }
+    .footer-links {
+      display: flex;
+      gap: 24px;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+    .footer-links a {
+      font-size: 0.85rem;
+      color: var(--text-muted);
+      transition: color 0.2s;
+    }
+    .footer-links a:hover { color: var(--text); }
+    .footer-copy {
+      font-size: 0.8rem;
+      color: #444;
+    }
+
+    /* ── FADE IN ── */
+    .fade-in {
+      opacity: 0;
+      transform: translateY(24px);
+      transition: opacity 0.6s ease, transform 0.6s ease;
+    }
+    .fade-in.visible {
+      opacity: 1;
+      transform: none;
+    }
+
+    /* ── RESPONSIVE ── */
+    @media (max-width: 700px) {
+      .nav-links { display: none; }
+      .mockup-chat { display: none; }
+      .hero h1 { font-size: 2.4rem; }
+      .hero-logo { width: 72px; height: 72px; }
+      .footer-inner { flex-direction: column; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav class="nav" id="nav">
+  <div class="container">
+    <div class="nav-inner">
+      <a href="#" class="nav-logo">
+        <img src="fluxlogo.png" alt="Flux logo">
+        Flux
+      </a>
+      <div class="nav-links">
+        <a href="#features" data-en="Features" data-ja="機能">Features</a>
+        <a href="#providers" data-en="AI Models" data-ja="AIモデル">AI Models</a>
+        <a href="#download" data-en="Download" data-ja="ダウンロード">Download</a>
+        <a href="https://github.com/flux-editor/flux" target="_blank" rel="noopener">GitHub</a>
+      </div>
+      <div class="nav-actions">
+        <button class="lang-btn" id="lang-toggle">日本語</button>
+        <a href="#download" class="btn btn-primary" data-en="Download Free" data-ja="無料でダウンロード">Download Free</a>
+      </div>
+    </div>
+  </div>
+</nav>
+
+<!-- HERO -->
+<section class="hero">
+  <div class="container">
+    <div class="hero-badge">
+      <span class="hero-badge-dot"></span>
+      <span data-en="Now with Qwen2.5-Coder · Free local AI" data-ja="Qwen2.5-Coder 搭載 · 無料ローカルAI">Now with Qwen2.5-Coder · Free local AI</span>
+    </div>
+
+    <img src="fluxlogo.png" alt="Flux" class="hero-logo">
+
+    <h1>
+      <span data-en="Code smarter." data-ja="スマートにコードを書く。">Code smarter.</span><br>
+      <span class="accent-text" data-en="Completely free." data-ja="完全無料で。">Completely free.</span>
+    </h1>
+
+    <p class="hero-sub">
+      <span data-en="A VSCode-based AI code editor with built-in chat and tab completion. Run Qwen locally via Ollama — no subscription, no API cost. Or switch to Claude, GPT-4o, and Gemini anytime." data-ja="チャットパネルとタブ補完を搭載したVSCodeベースのAIコードエディタ。OllamaでQwenをローカル実行 — サブスク不要、APIコスト不要。Claude・GPT-4o・Geminiにも切り替え可能。">A VSCode-based AI code editor with built-in chat and tab completion. Run Qwen locally via Ollama — no subscription, no API cost. Or switch to Claude, GPT-4o, and Gemini anytime.</span>
+    </p>
+
+    <div class="hero-actions">
+      <a href="#download" class="btn btn-primary btn-lg">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+        <span data-en="Download for Windows" data-ja="Windowsでダウンロード">Download for Windows</span>
+      </a>
+      <a href="https://github.com/flux-editor/flux" target="_blank" rel="noopener" class="btn btn-outline btn-lg">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0 1 12 6.844a9.59 9.59 0 0 1 2.504.337c1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0 0 22 12.017C22 6.484 17.522 2 12 2z"/></svg>
+        GitHub
+      </a>
+    </div>
+
+    <p class="hero-note">
+      <span data-en="Free &amp; open source &bull; Windows &bull; macOS &bull; Linux" data-ja="無料 &amp; オープンソース &bull; Windows &bull; macOS &bull; Linux">Free &amp; open source &bull; Windows &bull; macOS &bull; Linux</span>
+    </p>
+
+    <!-- Editor mockup -->
+    <div class="mockup">
+      <div class="mockup-bar">
+        <div class="dot dot-r"></div>
+        <div class="dot dot-y"></div>
+        <div class="dot dot-g"></div>
+        <span class="mockup-title">utils.ts — Flux AI</span>
+      </div>
+      <div class="mockup-body">
+        <div class="mockup-code">
+          <div><span class="ln">1</span><span class="cm">// Fibonacci with memoization</span></div>
+          <div><span class="ln">2</span><span class="kw">const</span> memo = <span class="kw">new</span> Map&lt;<span class="tp">number</span>, <span class="tp">bigint</span>&gt;();</div>
+          <div><span class="ln">3</span>&nbsp;</div>
+          <div><span class="ln">4</span><span class="kw">export function</span> <span class="fn">fib</span>(n: <span class="tp">number</span>): <span class="tp">bigint</span> {</div>
+          <div><span class="ln">5</span>&nbsp;&nbsp;<span class="kw">if</span> (n &lt;= <span class="nm">1</span>) <span class="kw">return</span> BigInt(n);</div>
+          <div><span class="ln">6</span>&nbsp;&nbsp;<span class="kw">if</span> (memo.<span class="fn">has</span>(n)) <span class="kw">return</span> memo.<span class="fn">get</span>(n)!;</div>
+          <div><span class="ln">7</span>&nbsp;&nbsp;<span class="kw">const</span> result = <span class="fn">fib</span>(n - <span class="nm">1</span>) + <span class="fn">fib</span>(n - <span class="nm">2</span>);</div>
+          <div><span class="ln">8</span>&nbsp;&nbsp;memo.<span class="fn">set</span>(n, result);</div>
+          <div><span class="ln">9</span>&nbsp;&nbsp;<span class="kw">return</span> result;</div>
+          <div><span class="ln">10</span>}</div>
+        </div>
+        <div class="mockup-chat">
+          <div class="chat-hdr">Flux AI</div>
+          <div class="chat-msgs">
+            <div class="bubble bubble-user" data-en="Add JSDoc and optimize this" data-ja="JSDocを追加して最適化して">Add JSDoc and optimize this</div>
+            <div class="bubble bubble-ai" data-en="Sure! I'll add JSDoc and switch to an iterative approach for better performance on large inputs…" data-ja="はい！JSDocを追加し、大きな入力でのパフォーマンス向上のためイテレーティブな実装に変更します…">Sure! I'll add JSDoc and switch to an iterative approach for better performance on large inputs…</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- FEATURES -->
+<section class="section" id="features">
+  <div class="container">
+    <span class="section-label" data-en="What's inside" data-ja="搭載機能">What's inside</span>
+    <h2 class="section-title fade-in">
+      <span data-en="Everything you need." data-ja="必要なものすべて。">Everything you need.</span><br>
+      <span data-en="Nothing you don't." data-ja="それ以外は不要。">Nothing you don't.</span>
+    </h2>
+    <p class="section-sub fade-in">
+      <span data-en="Built on VSCode, Flux adds a native AI chat panel with full editor context — without a monthly fee." data-ja="VSCode上に構築されたFluxは、月額料金なしでネイティブAIチャットパネルと完全なエディタコンテキストを追加します。">Built on VSCode, Flux adds a native AI chat panel with full editor context — without a monthly fee.</span>
+    </p>
+
+    <div class="features-grid">
+      <div class="feature-card fade-in">
+        <div class="feature-icon">⚡</div>
+        <h3 data-en="Local AI by Default" data-ja="デフォルトでローカルAI">Local AI by Default</h3>
+        <p data-en="Ships with Ollama integration. Qwen2.5-Coder 7B runs entirely on your machine — offline, zero cost, zero latency." data-ja="Ollama統合を搭載。Qwen2.5-Coder 7Bはマシン上で完全動作 — オフライン、ゼロコスト、遅延なし。">Ships with Ollama integration. Qwen2.5-Coder 7B runs entirely on your machine — offline, zero cost, zero latency.</p>
+      </div>
+
+      <div class="feature-card fade-in">
+        <div class="feature-icon">🖊</div>
+        <h3 data-en="Apply to Editor" data-ja="エディタに直接適用">Apply to Editor</h3>
+        <p data-en="AI responses include an Apply button. Click it to insert or replace code in the active editor instantly — no copy-paste needed." data-ja="AIの返答にはApplyボタンが付いています。クリックするだけでコードをエディタに即時挿入・置換 — コピペ不要。">AI responses include an Apply button. Click it to insert or replace code in the active editor instantly — no copy-paste needed.</p>
+      </div>
+
+      <div class="feature-card fade-in">
+        <div class="feature-icon">🔗</div>
+        <h3 data-en="Multi-Provider Support" data-ja="マルチプロバイダー対応">Multi-Provider Support</h3>
+        <p data-en="Bring your own API key for Claude, GPT-4o, or Gemini. Switch models from the chat sidebar in one click." data-ja="Claude・GPT-4o・GeminiのAPIキーを持ち込み可能。チャットサイドバーからワンクリックで切り替え。">Bring your own API key for Claude, GPT-4o, or Gemini. Switch models from the chat sidebar in one click.</p>
+      </div>
+
+      <div class="feature-card fade-in">
+        <div class="feature-icon">⌨</div>
+        <h3 data-en="Tab Completion" data-ja="タブ補完">Tab Completion</h3>
+        <p data-en="Ghost-text completions powered by Qwen FIM. Press Tab to accept inline suggestions as you type — just like GitHub Copilot." data-ja="Qwen FIM搭載のゴーストテキスト補完。タイピング中にTabを押してインライン提案を受け入れる — GitHub Copilotと同様。">Ghost-text completions powered by Qwen FIM. Press Tab to accept inline suggestions as you type — just like GitHub Copilot.</p>
+      </div>
+
+      <div class="feature-card fade-in">
+        <div class="feature-icon">📄</div>
+        <h3 data-en="Full Editor Context" data-ja="エディタコンテキスト全体">Full Editor Context</h3>
+        <p data-en="The AI automatically sees your active file and selected code. Ask questions, request refactors, or get explanations without leaving the editor." data-ja="AIはアクティブなファイルと選択コードを自動認識。エディタを離れずに質問・リファクタリング・説明を要求できます。">The AI automatically sees your active file and selected code. Ask questions, request refactors, or get explanations without leaving the editor.</p>
+      </div>
+
+      <div class="feature-card fade-in">
+        <div class="feature-icon">🔒</div>
+        <h3 data-en="Private by Design" data-ja="プライバシー優先設計">Private by Design</h3>
+        <p data-en="Local mode keeps your code on your machine. No telemetry to Flux servers. API keys stay in your OS settings — never transmitted." data-ja="ローカルモードではコードはマシン上に留まります。Fluxサーバーへの利用状況送信なし。APIキーはOS設定に保存 — 送信されません。">Local mode keeps your code on your machine. No telemetry to Flux servers. API keys stay in your OS settings — never transmitted.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- PROVIDERS -->
+<section class="section providers-section" id="providers">
+  <div class="container">
+    <span class="section-label" data-en="AI Providers" data-ja="AIプロバイダー">AI Providers</span>
+    <h2 class="section-title fade-in" data-en="Your models, your choice." data-ja="あなたのモデル、あなたの選択。">Your models, your choice.</h2>
+    <p class="section-sub fade-in">
+      <span data-en="Start free with local Qwen. Upgrade to cloud models whenever you need more power." data-ja="ローカルQwenで無料スタート。より高性能が必要なときはクラウドモデルにアップグレード。">Start free with local Qwen. Upgrade to cloud models whenever you need more power.</span>
+    </p>
+
+    <div class="providers-grid fade-in">
+      <div class="provider-card">
+        <div class="provider-icon">🤖</div>
+        <div class="provider-name">Qwen2.5-Coder</div>
+        <div class="provider-desc" data-en="7B model via Ollama<br>Runs 100% locally" data-ja="Ollama経由の7Bモデル<br>100%ローカル動作">7B model via Ollama<br>Runs 100% locally</div>
+        <span class="badge badge-free" data-en="Free · Local" data-ja="無料 · ローカル">Free · Local</span>
+      </div>
+
+      <div class="provider-card">
+        <div class="provider-icon">🌐</div>
+        <div class="provider-name">Claude</div>
+        <div class="provider-desc" data-en="claude-3-5-sonnet<br>by Anthropic" data-ja="claude-3-5-sonnet<br>Anthropic製">claude-3-5-sonnet<br>by Anthropic</div>
+        <span class="badge badge-api" data-en="API Key" data-ja="APIキー">API Key</span>
+      </div>
+
+      <div class="provider-card">
+        <div class="provider-icon">🧠</div>
+        <div class="provider-name">GPT-4o</div>
+        <div class="provider-desc" data-en="Latest OpenAI model<br>Flagship quality" data-ja="最新OpenAIモデル<br>フラグシップ品質">Latest OpenAI model<br>Flagship quality</div>
+        <span class="badge badge-api" data-en="API Key" data-ja="APIキー">API Key</span>
+      </div>
+
+      <div class="provider-card">
+        <div class="provider-icon">✦</div>
+        <div class="provider-name">Gemini</div>
+        <div class="provider-desc" data-en="gemini-2.0-flash<br>by Google" data-ja="gemini-2.0-flash<br>Google製">gemini-2.0-flash<br>by Google</div>
+        <span class="badge badge-api" data-en="API Key" data-ja="APIキー">API Key</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- DOWNLOAD CTA -->
+<section class="cta-section" id="download">
+  <div class="container">
+    <h2 class="fade-in" data-en="Start coding with AI today." data-ja="今日からAIでコーディングを。">Start coding with AI today.</h2>
+    <p class="fade-in" data-en="Free download. No account. No credit card." data-ja="無料ダウンロード。アカウント不要。クレジットカード不要。">Free download. No account. No credit card.</p>
+    <div class="hero-actions fade-in">
+      <a href="#" class="btn btn-primary btn-lg">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+        <span data-en="Download for Windows" data-ja="Windowsでダウンロード">Download for Windows</span>
+      </a>
+      <a href="https://github.com/flux-editor/flux" target="_blank" rel="noopener" class="btn btn-outline btn-lg">
+        GitHub
+      </a>
+    </div>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer class="footer">
+  <div class="container">
+    <div class="footer-inner">
+      <div class="footer-brand">
+        <a href="#" class="nav-logo">
+          <img src="fluxlogo.png" alt="Flux" style="width:24px;height:24px;border-radius:5px;">
+          Flux
+        </a>
+        <p data-en="AI-powered code editor. Free forever for local models." data-ja="AIコードエディタ。ローカルモデルは永久無料。">AI-powered code editor. Free forever for local models.</p>
+      </div>
+      <div class="footer-links">
+        <a href="#download" data-en="Download" data-ja="ダウンロード">Download</a>
+        <a href="https://github.com/flux-editor/flux" target="_blank" rel="noopener">GitHub</a>
+        <a href="https://github.com/flux-editor/flux/issues" target="_blank" rel="noopener" data-en="Issues" data-ja="Issues">Issues</a>
+        <a href="https://github.com/flux-editor/flux/blob/main/LICENSE" target="_blank" rel="noopener" data-en="License" data-ja="ライセンス">License</a>
+      </div>
+    </div>
+    <div class="footer-copy">
+      &copy; 2026 Flux Editor &bull; flux-code.xyz &bull;
+      <span data-en="Built on" data-ja="ベース:"> Built on </span>
+      <a href="https://github.com/microsoft/vscode" style="color:#555;text-decoration:underline;" target="_blank" rel="noopener">VS Code</a> (MIT).
+      <span data-en="Not affiliated with Microsoft." data-ja="Microsoftとは無関係です。">Not affiliated with Microsoft.</span>
+    </div>
+  </div>
+</footer>
+
+<script>
+  // Sticky nav
+  const nav = document.getElementById('nav');
+  window.addEventListener('scroll', () => {
+    nav.classList.toggle('scrolled', window.scrollY > 20);
+  }, { passive: true });
+
+  // Fade-in on scroll
+  const observer = new IntersectionObserver((entries) => {
+    entries.forEach(e => { if (e.isIntersecting) { e.target.classList.add('visible'); observer.unobserve(e.target); } });
+  }, { threshold: 0.12 });
+  document.querySelectorAll('.fade-in').forEach(el => observer.observe(el));
+
+  // Bilingual switcher
+  const LANG_KEY = 'flux-lang';
+  let lang = localStorage.getItem(LANG_KEY) || (navigator.language.startsWith('ja') ? 'ja' : 'en');
+
+  function applyLang(l) {
+    lang = l;
+    localStorage.setItem(LANG_KEY, l);
+    document.documentElement.lang = l;
+    document.querySelectorAll('[data-en]').forEach(el => {
+      const text = el.getAttribute('data-' + l);
+      if (text !== null) el.innerHTML = text;
+    });
+    const btn = document.getElementById('lang-toggle');
+    btn.textContent = l === 'en' ? '日本語' : 'English';
+  }
+
+  document.getElementById('lang-toggle').addEventListener('click', () => {
+    applyLang(lang === 'en' ? 'ja' : 'en');
+  });
+
+  applyLang(lang);
+</script>
+</body>
+</html>
