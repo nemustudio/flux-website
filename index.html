@@ -504,7 +504,7 @@
   <div class="container">
     <div class="hero-badge">
       <span class="hero-badge-dot"></span>
-      <span data-en="Now with Qwen2.5-Coder · Free local AI" data-ja="Qwen2.5-Coder 搭載 · 無料ローカルAI">Now with Qwen2.5-Coder · Free local AI</span>
+      <span data-en="Free AI · Available 24/7 · Forever" data-ja="24時間永久無料AI搭載">Free AI · Available 24/7 · Forever</span>
     </div>
 
     <img src="fluxlogo.png" alt="Flux" class="hero-logo">
@@ -708,7 +708,7 @@
 
   // Bilingual switcher
   const LANG_KEY = 'flux-lang';
-  let lang = localStorage.getItem(LANG_KEY) || (navigator.language.startsWith('ja') ? 'ja' : 'en');
+  let lang = localStorage.getItem(LANG_KEY) || 'en';
 
   function applyLang(l) {
     lang = l;
