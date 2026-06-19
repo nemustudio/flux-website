@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
@@ -504,7 +504,7 @@
   <div class="container">
     <div class="hero-badge">
       <span class="hero-badge-dot"></span>
-      <span data-en="Free AI · Available 24/7 · Forever" data-ja="24時間永久無料AI搭載">Free AI · Available 24/7 · Forever</span>
+      <span data-en="Now with Qwen2.5-Coder · Free local AI" data-ja="Qwen2.5-Coder 搭載 · 無料ローカルAI">Now with Qwen2.5-Coder · Free local AI</span>
     </div>
 
     <img src="fluxlogo.png" alt="Flux" class="hero-logo">
@@ -519,7 +519,7 @@
     </p>
 
     <div class="hero-actions">
-      <a href="https://github.com/nemustudio/flux-releases/releases/latest/download/FluxSetup-0.1.0.exe" class="btn btn-primary btn-lg">
+      <a href="https://github.com/nemustudio/flux-releases/releases/latest/download/FluxSetup-0.2.0.exe" class="btn btn-primary btn-lg">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
         <span data-en="Download for Windows" data-ja="Windowsでダウンロード">Download for Windows</span>
       </a>
@@ -661,7 +661,7 @@
     <h2 class="fade-in" data-en="Start coding with AI today." data-ja="今日からAIでコーディングを。">Start coding with AI today.</h2>
     <p class="fade-in" data-en="Free download. No account. No credit card." data-ja="無料ダウンロード。アカウント不要。クレジットカード不要。">Free download. No account. No credit card.</p>
     <div class="hero-actions fade-in">
-      <a href="https://github.com/nemustudio/flux-releases/releases/latest/download/FluxSetup-0.1.0.exe" class="btn btn-primary btn-lg">
+      <a href="https://github.com/nemustudio/flux-releases/releases/latest/download/FluxSetup-0.2.0.exe" class="btn btn-primary btn-lg">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
         <span data-en="Download for Windows" data-ja="Windowsでダウンロード">Download for Windows</span>
       </a>
@@ -708,7 +708,7 @@
 
   // Bilingual switcher
   const LANG_KEY = 'flux-lang';
-  let lang = localStorage.getItem(LANG_KEY) || 'en';
+  let lang = localStorage.getItem(LANG_KEY) || (navigator.language.startsWith('ja') ? 'ja' : 'en');
 
   function applyLang(l) {
     lang = l;
